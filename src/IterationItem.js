@@ -3,7 +3,6 @@ import './IterationItem.css';
 
 
 function IterationItem( props ) {
-
   if( props.iterationItemKey !== 'ro' ){
     return (
         <div className='iteration-item-wrapper'>
