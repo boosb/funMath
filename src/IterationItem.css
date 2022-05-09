@@ -1,0 +1,34 @@
+.iteration-item-wrapper{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    margin: 10px 0;
+}
+
+.iteration-item-x-box{
+    position: relative;
+    width: 20px;
+    height: 40px;
+    margin-top: -8px;
+}
+
+.iteration-item-x{
+    position: absolute;
+    left: 0;
+    top: 6px;
+    font-size: 20px;
+}
+
+.iteration-item-index{
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    font-size: 12px;
+}
+
+.iteration-index{
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 12px;
+}
