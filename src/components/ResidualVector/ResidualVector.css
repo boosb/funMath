@@ -1,0 +1,19 @@
+.residual-vector-wrapper{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+    margin-bottom: 10px;
+    margin-left: 25px;
+    padding-bottom: 25px;
+}
+
+.residual-vector-minus,
+.residual-vector-multiplication,
+.residual-vector-equals{
+    font-size: 25px;
+}
+
+.residual-vector-item{
+    margin: 0 10px;
+}
+

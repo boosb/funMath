@@ -1,48 +1,47 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Context from './Context';
 import Equations from './components/Equations/Equations';
 import MainEquations from './components/MainEquations/MainEquations';
 import Decision from './components/Decision/Decision';
 import CompressionRatios from './components/CompressionRatios/CompressionRatios';
+import ResidualVector from './components/ResidualVector/ResidualVector';
 import './App.css';
 
 function App() {
-
   // Required accuracy
   const E = 0.0001;
-  const [ size, setSize ]         = React.useState( 0 );
-  const [ mainData, setMainData ] = React.useState( {
+
+  // Object matrix
+  const M = {
+    value         : {},
+    mainDiagonal  : []
+  };
+
+  // Object main data
+  const D = {
     mainEquations     : {},
-    compressionRatios : { alpha : 0, betta : 0, gamma : 0, least : 0 }, 
-    iterations        : { keys : [] },
-  } );
-  const [ matrix, setMatrix ] = React.useState( {
-      keys              : [],
-      mainDiagonal      : []
-  } );
+    compressionRatios : { alpha : 0, betta : 0, gamma : 0, least : null }, 
+    iterations        : {},
+  }
+
+  const [ size, setSize ]         = React.useState( 0 );
+  const [ mainData, setMainData ] = React.useState( D );
+  const [ matrix, setMatrix ]     = React.useState( M );
 
   function populateMatrix( size ){
-    const matrix = { 
-      keys              : [],
-      mainDiagonal      : []
-    };
+    const matrix = M;
     for( let i = 0; i < size; i++ ){
-      const matrixLine = { keys : [], difference : true, coef : 1 };
-
+      const matrixLine = { line : {}, difference : true, coef : 1 /* todo: данное значение требовалось для приведение в диагональному преобладанию */ };
       for( let i = 0; i <= size; i++ ){
-        matrixLine[ i ] = 0;
-        matrixLine.keys.push( i );
+        matrixLine[ 'line' ][ i ] = 0;
       }
-
-      matrix[ i ] = matrixLine;
-      matrix.keys.push( i );
+      matrix.value[ i ] = matrixLine;
     }
-
     setMatrix( matrix );
   }
 
-  function populateItem( value, lineId, itemId ) {
-    matrix[ lineId ][ itemId ] = value;
+  function populateItem( num, lineId, itemId ) {
+    matrix.value[ lineId ][ 'line' ][ itemId ] = num;
   }
 
   function handlerOnClickSandData() {
@@ -51,16 +50,13 @@ function App() {
     populateDifferenceInLine();
     if( checkMatrixDifference() ) {
       //populateCoefficients(); todo не работает, надо пильть приведение к диагональному преобладанию
-      const data = {
-        mainEquations     : {},
-        compressionRatios : { alpha : 0, betta : 0, gamma : 0, least : 0 }, 
-        iterations        : { keys : [] }
-      }
+      const data = D;
       populateEquations( data );
       const { allRatiosGood, results } = populateCompressionRatios( data );
       
       if( allRatiosGood ) {
         populateIterations( data );
+        console.log( matrix, ' >>> matrix' )
         console.log( data, ' >>> mainData' )
         setMainData( data )
       } else {
@@ -70,42 +66,53 @@ function App() {
   }
 
   function convertToNumber(){
-    matrix.keys.forEach( lineId => {
-      const line = matrix[ lineId ];
-      line.keys.forEach( itemId => {
+    const keys = Object.keys( matrix.value );
+
+    keys.forEach( lineId => {
+      const line      = matrix.value[ lineId ][ 'line' ];
+      const lineKeys  = Object.keys( line )
+      lineKeys.forEach( itemId => {
         const num = Number( line[ itemId ] );
         if( num || num === 0 ) {
-          matrix[ lineId ][ itemId ] = num;
+          matrix.value[ lineId ][ 'line' ][ itemId ] = num;
         } else {
           alert( 'enter to number' );
         }
       } )
     } )
-    console.log( matrix )
   }
 
   function createMainDiagonal(){
-    matrix.keys.forEach( lineId => matrix.mainDiagonal.push( matrix[ lineId ][ lineId ] ) );
+    // clean mainDiagonal
+    matrix.mainDiagonal = [];
+
+    const keys = Object.keys( matrix.value );
+    keys.forEach( lineId => matrix.mainDiagonal.push( matrix.value[ lineId ][ 'line' ][ lineId ] ) );
   }
 
   function populateDifferenceInLine() {
-    matrix.keys.forEach( lineId => {
-      const line      = matrix[ lineId ];
+    const keys = Object.keys( matrix.value );
+    keys.forEach( lineId => {
+      const line      = matrix.value[ lineId ][ 'line' ];
+      const lineKeys  = Object.keys( line );
       const numDgl    = matrix.mainDiagonal[ lineId ];
       let numForDiff  = 0;
-      line.keys.forEach( itemId => {
-        if( itemId !== lineId && itemId !== line.keys.length - 1 ){
+      lineKeys.forEach( itemId => {
+        if( itemId !== lineId && Number( itemId ) !== lineKeys.length - 1 ){
           numForDiff += Math.abs( line[ itemId ] );
         }
       } )
-      matrix[ lineId ].difference = numDgl > numForDiff;
+      matrix.value[ lineId ].difference = Math.abs( numDgl ) > numForDiff;
     } )
   }
 
   function checkMatrixDifference() {
+    console.log( matrix, ' >>> matrix' )
+        console.log( mainData, ' >>> mainData' )
+      const keys = Object.keys( matrix.value );
       let result = true;
-      matrix.keys.forEach( key => {
-        const line = matrix[ key ];
+      keys.forEach( key => {
+        const line = matrix.value[ key ];
         if( !line.difference ) {
           result = false;
         }
@@ -118,7 +125,7 @@ function App() {
   }
 
   // todo доработать или переработать или ваще убрать
-  function populateCoefficients() {
+  /*function populateCoefficients() {
     const arr = [];
     matrix.keys.forEach( lineId => {
       if( !matrix[ lineId ].difference ){
@@ -133,7 +140,7 @@ function App() {
         arrOne.push( [ arr[ j ][ i ], arr[ j ].coef ] )
       }
     }
-  }
+  }*/
 
   function populateCompressionRatios( data ) {
     populateCompressionRatioAlpha( data );
@@ -143,15 +150,17 @@ function App() {
   }
 
   function populateCompressionRatioAlpha( data ) {
-    matrix.keys.forEach( key => { 
+    const keys = Object.keys( matrix.value );
+    keys.forEach( key => { 
       const { alpha : A } = data.compressionRatios;
-      const line  = matrix[ key ];
-      const MDN   = matrix.mainDiagonal[ key ]; // mainDiagonalNumber
-      let alpha   = 0;
+      const line      = matrix.value[ key ][ 'line' ];
+      const lineKeys  = Object.keys( line );
+      const MDN       = matrix.mainDiagonal[ key ]; // mainDiagonalNumber
+      let alpha       = 0;
 
-      line.keys.forEach( keyItem => {
+      lineKeys.forEach( keyItem => {
         const item = line[ keyItem ];
-        if( key !== keyItem && keyItem < line.keys.length - 1 ){
+        if( key !== keyItem && keyItem < lineKeys.length - 1 ){
           alpha += Math.abs( item / MDN );
         }
       } )
@@ -160,21 +169,21 @@ function App() {
   }
 
   function populateCompressionRatioBetta( data ) {
-    const ratioData  = { keys : [] }
-    matrix.keys.forEach( key => { 
+    const keys      = Object.keys( matrix.value );
+    const ratioData = {}
+    keys.forEach( key => { 
       ratioData[ key ] = [];
-      matrix.keys.forEach( keyTwo => {
+      keys.forEach( keyTwo => {
         const MDN = matrix.mainDiagonal[ keyTwo ]; // mainDiagonalNumber
-        ratioData[ key ].push( matrix[ keyTwo ][ key ] / MDN );
+        ratioData[ key ].push(  matrix.value[ keyTwo ][ 'line' ][ key ] / MDN );
       } )
-      ratioData.keys.push( key );
     } );
 
-    ratioData.keys.forEach( key => {
+    Object.keys( ratioData ).forEach( key => {
       const { betta : B } = data.compressionRatios;
       let betta = 0;
       ratioData[ key ].forEach( ( num, index ) => {
-        if( key !== index ){
+        if( Number( key ) !== index ){
           betta += Math.abs( num );
         }
       } )
@@ -183,19 +192,21 @@ function App() {
   }
   
   function populateCompressionRatioGamma( data ) {
-    let gamma = 0;
-    matrix.keys.forEach( key => { 
-      const line  = matrix[ key ];
-      const MDN   = matrix.mainDiagonal[ key ]; // mainDiagonalNumber
+    const keys = Object.keys( matrix.value );
+    let gamma  = 0;
+    keys.forEach( key => { 
+      const line      = matrix.value[ key ][ 'line' ];
+      const lineKeys  = Object.keys( line );
+      const MDN       = matrix.mainDiagonal[ key ]; // mainDiagonalNumber
 
-      line.keys.forEach( keyItem => {
+      lineKeys.forEach( keyItem => {
         const item = line[ keyItem ];
-        if( key !== keyItem && keyItem < line.keys.length - 1 ){
+        if( key !== keyItem && keyItem < lineKeys.length - 1 ){
           gamma += ( item / MDN ) * ( item / MDN );
         }
       } )
     } );
-    data.compressionRatios.gamma = getRounding( gamma );
+    data.compressionRatios.gamma = getRounding( Math.sqrt( gamma ) );
   }
 
   function checkSufficientCondition( data ) {
@@ -270,16 +281,18 @@ function App() {
   }
 
   function populateEquations( data ) {
-    matrix.keys.forEach( key => { 
-      const line  = matrix[ key ];
-      const MDN   = matrix.mainDiagonal[ key ]; // mainDiagonalNumber
+    const keys = Object.keys( matrix.value );
+    keys.forEach( key => { 
+      const line      = matrix.value[ key ][ 'line' ];
+      const lineKeys  = Object.keys( line );
+      const MDN       = matrix.mainDiagonal[ key ]; // mainDiagonalNumber
       const equationValues  = [];
 
-      line.keys.forEach( keyItem => {
+      lineKeys.forEach( keyItem => {
         const item = line[ keyItem ];
         if( key !== keyItem ){
           let value = null;
-          if( keyItem < line.keys.length - 1 ) {
+          if( keyItem < lineKeys.length - 1 ) {
             value = item > 0 ? ( item / MDN ) * ( -1 ) : Math.abs( item ) / MDN;
           } else {
             value = item / MDN;
@@ -302,9 +315,10 @@ function App() {
   }
 
   function populateIteration( data ){
+    const keys            = Object.keys( matrix.value );
     const iterationNumber = getIterationNumber( data );
     data.iterations[ iterationNumber ] = {}
-    matrix.keys.forEach( key => { 
+    keys.forEach( key => { 
       const equation = data.mainEquations[ `x${ key }` ];
       let result     = 0;
       equation.forEach( ( number, index ) => {
@@ -324,18 +338,16 @@ function App() {
   }
 
   function getIterationNumber( data ) {
-    const { keys }  = data.iterations;
-    const iteration = keys.length ? keys.length : 0;
-    data.iterations.keys.push( iteration );
-    return iteration;
+    const keys = Object.keys( data.iterations );
+    return keys.length ? keys.length : 0;
   }
 
   function getAccuracy( data ) {
-    const iterationLength       = data.iterations.keys.length;
-    const iterationLast         = data.iterations[ iterationLength - 1 ];
-    const iterationPenultimate  = data.iterations[ iterationLength - 2 ];
+    const keys                  = Object.keys( data.iterations );
+    const iterationLast         = data.iterations[ keys.length - 1 ];
+    const iterationPenultimate  = data.iterations[ keys.length - 2 ];
 
-    if( data.iterations.keys.length > 1 ){
+    if( keys.length > 1 ){
       const { ros, roMax } = populateRosAndRoMax( iterationLast, iterationPenultimate );
       const formula  = getFormulaAndLeast( data );
       const accuracy = getRounding( formula( roMax, ros ) );
@@ -345,9 +357,10 @@ function App() {
   }
 
   function populateRosAndRoMax( iterationLast, iterationPenultimate ){
-    const ros = [];
-    let roMax = 0;
-    matrix.keys.forEach( matrixKey => {
+    const keys = Object.keys( matrix.value );
+    const ros  = [];
+    let roMax  = 0;
+    keys.forEach( matrixKey => {
       const ro      = iterationPenultimate[ `x${ matrixKey }` ] - iterationLast[ `x${ matrixKey }` ];
       const roRound = getRounding( ro )
       roMax = roMax > Math.abs( roRound ) ? roMax : Math.abs( roRound );
@@ -373,11 +386,12 @@ function App() {
           <button onClick={ () => populateMatrix( size ) } >Send</button>
         </div>
         <Equations matrix={ matrix }/>
-        { matrix.keys.length >= 1 && <button onClick={ () => handlerOnClickSandData() }>Send data</button> }
+        { Object.keys( matrix.value ).length >= 1 && <button onClick={ () => handlerOnClickSandData() }>Send data</button> }
 
         <MainEquations mainEquations={ mainData.mainEquations }/>
         <CompressionRatios compressionRatios={ mainData.compressionRatios }/>
         <Decision iterations={ mainData.iterations } />
+        <ResidualVector matrix={ matrix.value } iterations={ mainData.iterations } />
       
       </div>
     </Context.Provider>

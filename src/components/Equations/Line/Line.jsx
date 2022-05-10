@@ -2,14 +2,14 @@ import React from 'react';
 import Item from '../Item/Item';
 
 function Line( props ) {
-  const length = props.line.keys.length;
+  const lineKeys = Object.keys( props.line );
  
   return (
     <div>
-      { props.line.keys.map( ( itemId, index ) => {       
+      { lineKeys.map( ( itemId, index ) => {       
         return (
           <Item 
-            lastItem={ index === length - 1 } 
+            lastItem={ index === lineKeys.length - 1 } 
             lineId={ props.lineId }
             itemId={ itemId } 
             key={ itemId }

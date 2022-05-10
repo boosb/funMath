@@ -9,8 +9,8 @@ function Item( props ) {
   return (
     <span>
         { props.lastItem && "= " }
-        <input className='item-input' onChange={ event => populateItem( event.target.value, props.lineId, props.itemId ) }></input>
-        { !props.lastItem && <span className='item-text'>x{ props.itemId + 1 }</span> }
+        <input className='item-input' onChange={ event => populateItem( event.target.value, props.lineId, props.itemId ) }/>
+        { !props.lastItem && <span className='item-text'>x{ Number( props.itemId ) + 1 }</span> }
     </span>
   )
 }
