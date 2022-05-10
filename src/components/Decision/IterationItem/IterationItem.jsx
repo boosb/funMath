@@ -3,7 +3,7 @@ import './IterationItem.css';
 
 
 function IterationItem( props ) {
-  if( props.iterationItemKey !== 'ro' ){
+  if( props.iterationItemKey !== 'roMax' && props.iterationItemKey !== 'ros' && props.iterationItemKey !== 'accuracy' ){
     return (
         <div className='iteration-item-wrapper'>
             <div className='iteration-item-x-box'>

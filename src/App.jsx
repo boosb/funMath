@@ -1,37 +1,44 @@
 import React, { useState } from 'react';
 import Context from './Context';
-import Equations from './Equations';
-import Decision from './Decision';
+import Equations from './components/Equations/Equations';
+import MainEquations from './components/MainEquations/MainEquations';
+import Decision from './components/Decision/Decision';
+import CompressionRatios from './components/CompressionRatios/CompressionRatios';
+import './App.css';
+
+const mainData = {
+  
+}
 
 function App() {
 
   const [ size, setSize ]     = React.useState( 0 );
   const [ iterations, setIterations ]     = React.useState( { keys : [] } );
+  const [ mainEquations, setMainEquations ]     = React.useState( {} );
+  const [ compressionRatios, setCompressionRatios ] = React.useState( {} );
   const [ matrix, setMatrix ] = React.useState( 
     { 
-      0 : {0: 25, 1: 1, 2: -3.5, 3: 5, keys: [0, 1, 2, 3], difference: true, coef: 1},
+      /*0 : {0: 25, 1: 1, 2: -3.5, 3: 5, keys: [0, 1, 2, 3], difference: true, coef: 1},
       1 : {0: 0, 1: 9.4, 2: -3.4, 3: -3, keys: [0, 1, 2, 3], difference: true, coef: 1},
-      2 : {0: 1, 1: -1, 2: 7.3, 3: 0, keys: [0, 1, 2, 3], difference: true, coef: 1},
+      2 : {0: 1, 1: -1, 2: 7.3, 3: 0, keys: [0, 1, 2, 3], difference: true, coef: 1},*/
       // todo не забыть вернуть ключи в []
-      keys              : [0, 1, 2], 
+      keys              : [],//[0, 1, 2], 
       mainDiagonal      : [], 
       mainEquations     : {}, 
-      compressionRatios : { alpha : 0, betta : 0, gamma : 0 }, 
+      compressionRatios : { alpha : 0, betta : 0, gamma : 0, least : 0 }, 
       iterations        : { keys : [] },
-      E                 : 0.0001,
-      formula           : getFormula()
+      E                 : 0.0001
     }
   );
 
   function populateMatrix( size ){
     const matrix = { 
-      keys              : [0, 1, 2], 
+      keys              : [],//[0, 1, 2], 
       mainDiagonal      : [], 
       mainEquations     : {}, 
-      compressionRatios : { alpha : 0, betta : 0, gamma : 0 }, 
+      compressionRatios : { alpha : 0, betta : 0, gamma : 0, least : 0 }, 
       iterations        : { keys : [] },
-      E                 : 0.0001,
-      formula           : null,
+      E                 : 0.0001
     };
     for( let i = 0; i < size; i++ ){
       const matrixLine = { keys : [], difference : true, coef : 1 };
@@ -58,14 +65,20 @@ function App() {
     populateDifferenceInLine();
     if( checkMatrixDifference() ) {
       //populateCoefficients(); todo не работает, надо пильть приведение к диагональному преобладанию
-      populateCompressionRatioAlpha();
-      populateCompressionRatioBetta();
-      populateCompressionRatioGamma();
-      populateEquations();
-  
-      populateIterations();
-  
-      console.log( matrix );
+      const { allRatiosGood, results } = populateCompressionRatios();
+
+      if( allRatiosGood ) {
+        populateEquations();
+        populateIterations();
+    
+        // writing state for rerender
+        setIterations( matrix.iterations );
+        setMainEquations( matrix.mainEquations );
+        setCompressionRatios( matrix.compressionRatios )
+        console.log( matrix );
+      } else {
+        alert( results );
+      }
     }
   }
 
@@ -104,8 +117,9 @@ function App() {
 
   function checkMatrixDifference() {
       let result = true;
-      matrix.keys.forEach( key => {
+    /*matrix.keys.forEach( key => {
         const line = matrix[ key ];
+        console.log( line, ' >> LINE' )
         if( !line.difference ) {
           result = false;
         }
@@ -113,7 +127,7 @@ function App() {
       
       if( !result ){
         alert( 'В системе нет диагонального преобладания' );
-      }
+      }*/
       return result;
   }
 
@@ -135,6 +149,13 @@ function App() {
     }
   }
 
+  function populateCompressionRatios() {
+    populateCompressionRatioAlpha();
+    populateCompressionRatioBetta();
+    populateCompressionRatioGamma();
+    return checkSufficientCondition();
+  }
+
   function populateCompressionRatioAlpha() {
     matrix.keys.forEach( key => { 
       const { alpha : A } = matrix.compressionRatios;
@@ -148,7 +169,7 @@ function App() {
           alpha += Math.abs( item ) / MDN;
         }
       } )
-      matrix.compressionRatios.alpha = A < alpha ? alpha : A;
+      matrix.compressionRatios.alpha = A < alpha ? getRounding( alpha ) : A;
     } );
   }
 
@@ -171,7 +192,7 @@ function App() {
           betta += Math.abs( num );
         }
       } )
-      matrix.compressionRatios.betta = B < betta ? betta : B;
+      matrix.compressionRatios.betta = B < betta ? getRounding( betta ) : B;
     } )
     console.log( 'DATA' )
     console.log( data )
@@ -186,16 +207,85 @@ function App() {
 
       line.keys.forEach( keyItem => {
         const item = line[ keyItem ];
+        console.log( item, ' >>> item' )
         if( key !== keyItem && keyItem < line.keys.length - 1 ){
+          console.log(  Math.abs( item ) / MDN, ' >>> TEST' )
           gamma += Math.abs( item ) / MDN;
         }
       } )
     } );
-    matrix.compressionRatios.gamma = gamma;
+    matrix.compressionRatios.gamma = getRounding( gamma );
   }
 
-  function getFormula() {
-    return ( alpha, num ) => ( alpha / ( 1 - alpha ) ) * num;
+  function checkSufficientCondition() {
+    const { alpha, betta, gamma } = matrix.compressionRatios;
+    const results     = [ 'A sufficient condition is not met' ];
+    let allRatiosGood = true;
+    const resultsPush = ( text ) => {
+      results.push( text );
+      allRatiosGood = false;
+    }
+
+    if( alpha > 1 ){
+      resultsPush( 'alpha is greater than 1' );
+    }
+    if( betta > 1 ){
+      resultsPush( 'betta is greater than 1' );
+    }
+    if( gamma > 1 ){
+      resultsPush( 'gamma is greater than 1' );
+    }
+    return {
+      allRatiosGood,
+      results : results.join( ', ' )
+    }
+  }
+
+  function getFormulaAndLeast() {
+    const { alpha, betta, gamma } = matrix.compressionRatios;
+    if( alpha === 0 && betta === 0 && gamma === 0 ) {
+      alert( 'alpha, beta, gamma not defined yet' );
+    } else {
+      let least = '';
+      if( alpha < betta && alpha < gamma ){
+        least = 'alpha';
+      } else if( betta < gamma ) {
+        least = 'betta';
+      } else {
+        least = 'gamma'
+      }
+      matrix.compressionRatios[ 'least' ] = least;
+
+      return getFormula( least );
+    }
+  }
+
+  function getFormula( least ){
+    switch( least ){
+      case 'alpha': 
+        return ( roMax, ros ) => {
+          const { alpha } = matrix.compressionRatios;
+          return ( alpha / ( 1 - alpha ) ) * roMax;
+        }
+
+      case 'betta':
+        return ( roMax, ros ) => {
+          const { betta } = matrix.compressionRatios;
+          let roSum = 0;
+          ros.forEach( ro => roSum += ro );
+          return ( betta / ( 1 - betta ) ) * roSum;
+        }
+
+      case 'gamma': 
+        return ( roMax, ros ) => {
+          const { gamma } = matrix.compressionRatios;
+          let roSum = 0;
+          ros.forEach( ro => roSum += ro * ro );
+          return ( gamma / ( 1 - gamma ) ) * Math.sqrt( roSum );
+        } 
+
+      default: {}
+    }
   }
 
   function populateEquations() {
@@ -213,7 +303,7 @@ function App() {
           } else {
             value = item / MDN;
           }
-          equationValues.push( value );
+          equationValues.push( getRounding( value ) );
         } else if( key === keyItem ){
           equationValues.push( 0 );
         }
@@ -225,7 +315,7 @@ function App() {
   function populateIterations() {
     populateIteration();
     populateIteration();
-    while( getRo() > matrix.E ){
+    while( getAccuracy() > matrix.E ){
       populateIteration();
     }
   }
@@ -234,32 +324,21 @@ function App() {
     const iterationNumber = getIterationNumber();
     matrix.iterations[ iterationNumber ] = {}
     matrix.keys.forEach( key => { 
-      const equation        = matrix.mainEquations[ `x${ key }` ];
-      let result            = 0;
-
-      console.log( equation , '  >> equation' )
-      console.log( iterationNumber, ' >>> iterationNumber' )
+      const equation = matrix.mainEquations[ `x${ key }` ];
+      let result     = 0;
       equation.forEach( ( number, index ) => {
         if( index === equation.length - 1 ) {
-        
-
-          console.log( number, ' >> number-3' )
           result += number;
         } else {
           if( iterationNumber === 0  ) {
-            console.log( number, ' >> number-1' )
             result += number * 0;
           } else if( iterationNumber > 0 ) {
-           // const iterationKeys = matrix.iterations.keys;
-           console.log( number, ' >> number-2' )
             const x = matrix.iterations[ iterationNumber - 1 ][ `x${ index }` ];
-            console.log( x , ' >>> X' )
             result += number * x;
           }  
         }
       } )
-      console.log( result,  ' >> RESULT' )
-      matrix.iterations[ iterationNumber ][ `x${ key }` ] = Number( result.toFixed( 4 ) );
+      matrix.iterations[ iterationNumber ][ `x${ key }` ] = getRounding( result );
     } );
   }
 
@@ -270,35 +349,49 @@ function App() {
     return iteration;
   }
 
-  function getRo() {
+  function getAccuracy() {
+    const iterationLength       = matrix.iterations.keys.length;
+    const iterationLast         = matrix.iterations[ iterationLength - 1 ];
+    const iterationPenultimate  = matrix.iterations[ iterationLength - 2 ];
+    const ros = [];
     let roMax = 0;
-    if( matrix.iterations.keys.length > 1 ){
-      const iterationLength       = matrix.iterations.keys.length;
-      const iterationLast         = matrix.iterations[ iterationLength - 1 ];
-      const iterationPenultimate  = matrix.iterations[ iterationLength - 2 ];
-      matrix.keys.forEach( matrixKey => {
-        const ro = iterationPenultimate[ `x${ matrixKey }` ] - iterationLast[ `x${ matrixKey }` ];
-        roMax = roMax > Math.abs( ro ) ? roMax : Math.abs( ro );
-      } )
 
-      iterationLast[ 'ro' ] = roMax;
+    if( matrix.iterations.keys.length > 1 ){
+      matrix.keys.forEach( matrixKey => {
+        const ro      = iterationPenultimate[ `x${ matrixKey }` ] - iterationLast[ `x${ matrixKey }` ];
+        const roRound = getRounding( ro )
+        roMax = roMax > Math.abs( roRound ) ? roMax : Math.abs( roRound );
+        ros.push( Math.abs( roRound ) )
+      } )
+      iterationLast[ 'roMax' ]  = roMax;
+      iterationLast[ 'ros' ]    = ros;
     }
-    console.log( matrix.formula( matrix.compressionRatios.alpha, roMax ), ' >>> MEGA_TEST' )
-    return matrix.formula( matrix.compressionRatios.alpha, roMax );
+    const formula  = getFormulaAndLeast();
+    const accuracy = getRounding( formula( roMax, ros ) );
+    iterationLast[ 'accuracy' ] = accuracy;
+    return accuracy;
+  }
+
+  function getRounding( number ) {
+    return Number( number.toFixed( 4 ) );
   }
 
   return (
     <Context.Provider value={ { populateItem } }>
-      <div>
-        <p>Enter the size of the equation system</p>
-        <input onChange={ event => setSize( event.target.value ) }></input>
-        <button onClick={ () => /*populateMatrix( size )*/ console.log('HI') } >Send</button>
+      <div className='container'>
+        <h1>Method of successive approximations</h1>
+        <div className='enter-size-wrapper'>
+          <div className='enter-size-text'>Enter the size of the equation system</div>
+          <input className='enter-size-input' onChange={ event => setSize( event.target.value ) }></input>
+          <button onClick={ () => populateMatrix( size ) } >Send</button>
+        </div>
         <Equations matrix={ matrix }/>
         { matrix.keys.length >= 1 && <button onClick={ () => handlerOnClickSandData() }>Send data</button> }
-        { matrix.iterations.keys >= 2 && <Decision iterations={ matrix.iterations } ></Decision> }
 
-        <button onClick={ () => setIterations( matrix.iterations ) }>Send test</button>
-        <Decision iterations={ iterations } ></Decision>
+        <MainEquations mainEquations={ matrix.mainEquations }/>
+        <CompressionRatios compressionRatios={ matrix.compressionRatios }/>
+        <Decision iterations={ matrix.iterations } />
+      
       </div>
     </Context.Provider>
   );

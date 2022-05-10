@@ -1,10 +1,9 @@
 import React from 'react';
-import IterationItem from './IterationItem';
+import IterationItem from '../IterationItem/IterationItem';
 import './Iteration.css';
 
 function Iteration( props ) {
   const keys = Object.keys( props.iteration );
-
 
   return (
     <div className='iteration-wrapper'>

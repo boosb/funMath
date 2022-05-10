@@ -1,0 +1,35 @@
+.container {
+    background: linear-gradient(to top, #55EFCB 0%, #5BCAFF 100%);
+    border-left: 2px solid black;
+    border-right: 2px solid black;
+    max-width: 1200px;
+    padding: 0 15px;
+    margin: 0 auto;
+    min-height: 100vh;
+    opacity: 0.96;
+}
+
+.enter-size-wrapper{
+    margin-bottom: 15px;
+    margin-left: 5px;
+}
+
+.enter-size-text{
+    margin-bottom: 5px;
+}
+
+.enter-size-input{
+    height: 35px;
+    width: 170px;
+    border: 1px solid gray;
+    border-radius: 7px;
+    font-size: 20px;
+    padding: 0 5px;
+}
+
+.enter-size-input:active, 
+.enter-size-input:hover, 
+.enter-size-input:focus {
+    outline: 0;
+    outline-offset: 0;
+}

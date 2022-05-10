@@ -1,3 +1,7 @@
+.accuracy-wrapper{
+    margin: 10px 25px;
+}
+
 .iterations-wrapper{
     display: flex;
     flex-direction: row;

@@ -1,0 +1,19 @@
+.item-input{
+    margin: 5px;
+    height: 20px;
+    width: 30px;
+    border: 1px solid gray;
+    border-radius: 3px;
+    padding: 0 5px;
+}
+
+.item-input:active, 
+.item-input:hover, 
+.item-input:focus {
+    outline: 0;
+    outline-offset: 0;
+}
+
+.item-text{
+    margin-right: 10px;
+}

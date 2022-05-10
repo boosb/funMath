@@ -1,0 +1,16 @@
+.compression-ratios-wrapper{
+    margin-bottom: 10px;
+    margin-left: 25px;
+}
+
+.compression-ratio-name{
+    font-size: 25px;
+}
+
+.compression-ratio-item{
+    width: 85px;
+}
+
+.good-item{
+    border-bottom: 2px solid black;
+}

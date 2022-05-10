@@ -1,5 +1,5 @@
 import React from 'react';
-import Line from './Line';
+import Line from './Line/Line';
 
 function Equations( props ) {
  
