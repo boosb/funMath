@@ -293,7 +293,7 @@ function App() {
         if( key !== keyItem ){
           let value = null;
           if( keyItem < lineKeys.length - 1 ) {
-            value = item > 0 ? ( item / MDN ) * ( -1 ) : Math.abs( item ) / MDN;
+            value = item > 0 ? ( item / MDN ) * ( -1 ) : Math.abs( item ) /MDN;
           } else {
             value = item / MDN;
           }
