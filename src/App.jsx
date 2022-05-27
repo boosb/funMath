@@ -298,7 +298,7 @@ function App() {
             value = item / MDN;
           }
           equationValues.push( getRounding( value ) );
-        } else if( key === keyItem ){
+        } else if( key === keyItem  ){
           equationValues.push( 0 );
         }
       } )
